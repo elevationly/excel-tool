@@ -1313,6 +1313,9 @@ class ExcelSplitApp:
 
 
 def main():
+    from ui_theme import set_windows_app_user_model_id
+
+    set_windows_app_user_model_id()
     ExcelSplitApp().run()
 
 

@@ -35,7 +35,14 @@ FONT_BODY = ("Microsoft YaHei UI", 12)
 FONT_SMALL = ("Microsoft YaHei UI", 11)
 FONT_HINT = ("Microsoft YaHei UI", 10)
 
-ASSETS_DIR = Path(__file__).resolve().parent / "assets"
+def _app_base_dir() -> Path:
+    """开发目录或 PyInstaller 解压目录。"""
+    if getattr(sys, "frozen", False):
+        return Path(sys._MEIPASS)
+    return Path(__file__).resolve().parent
+
+
+ASSETS_DIR = _app_base_dir() / "assets"
 APP_ICON = ASSETS_DIR / "app_icon.ico"
 
 
