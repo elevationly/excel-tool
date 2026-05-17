@@ -1,0 +1,13 @@
+__pycache__/
+*.py[cod]
+*.pyo
+.venv/
+venv/
+.env
+*.log
+
+# 拆分输出与示例数据（勿提交大文件）
+*_拆分表格_*/
+拆分表格文件夹/
+*.xlsx
+*.xls
