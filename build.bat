@@ -32,7 +32,19 @@ if errorlevel 1 (
 )
 
 echo.
+echo 复制 Win7 离线运行库到 dist ...
+if not exist "dist" mkdir "dist"
+copy /Y "win7_安装运行库.bat" "dist\" >nul
+if exist "redist\win7" (
+    xcopy /E /I /Y "redist\win7" "dist\redist\win7\" >nul
+)
+
+echo.
 echo 完成！输出文件：
 echo   dist\Excel表格拆分工具.exe
+echo   dist\win7_安装运行库.bat
+echo   dist\redist\win7\x64\  dist\redist\win7\x86\  （若已下载离线包）
+echo.
+echo Win7 内网：整包拷入内网后，以管理员运行 dist\win7_安装运行库.bat
 echo.
 pause

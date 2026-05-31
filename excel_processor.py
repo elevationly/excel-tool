@@ -7,7 +7,7 @@ import tempfile
 from dataclasses import dataclass
 from datetime import datetime
 from pathlib import Path
-from typing import Any
+from typing import Any, Callable
 
 import pandas as pd
 from openpyxl import Workbook
@@ -574,19 +574,26 @@ def split_and_export(
     header_rows: list[list[Any]] | None = None,
     col_kinds: dict[str, str] | None = None,
     mode: str = OUTPUT_MODE_FILES,
+    on_progress: Callable[[int, int], None] | None = None,
 ) -> SplitExportResult:
     if mode == OUTPUT_MODE_WORKBOOK:
-        return _split_to_workbook(df, split_columns, output_path, header_rows, col_kinds)
+        return _split_to_workbook(df, split_columns, output_path, header_rows, col_kinds, on_progress)
 
     output_dir = Path(output_path)
     output_dir.mkdir(parents=True, exist_ok=True)
 
+    groups = list(_group_keys_and_frames(df, split_columns))
+    if not groups:
+        raise ValueError("没有可写入的数据")
+    total = len(groups)
     count = 0
-    for key, group_df in _group_keys_and_frames(df, split_columns):
+    for key, group_df in groups:
         parts = [sanitize_filename(k if pd.notna(k) else "空值") for k in key]
         base_name = "_".join(parts)
         export_dataframe_to_excel(group_df, output_dir / f"{base_name}.xlsx", header_rows, col_kinds)
         count += 1
+        if on_progress:
+            on_progress(count, total)
 
     return SplitExportResult(count=count, output_path=output_dir, mode=OUTPUT_MODE_FILES)
 
@@ -597,9 +604,15 @@ def _split_to_workbook(
     output_file: str | Path,
     header_rows: list[list[Any]] | None = None,
     col_kinds: dict[str, str] | None = None,
+    on_progress: Callable[[int, int], None] | None = None,
 ) -> SplitExportResult:
     output_file = Path(output_file)
     output_file.parent.mkdir(parents=True, exist_ok=True)
+
+    groups = list(_group_keys_and_frames(df, split_columns))
+    if not groups:
+        raise ValueError("没有可写入的数据")
+    total = len(groups)
 
     wb = Workbook()
     default_ws = wb.active
@@ -608,16 +621,15 @@ def _split_to_workbook(
     used_sheet_names: set[str] = set()
     count = 0
 
-    for key, group_df in _group_keys_and_frames(df, split_columns):
+    for key, group_df in groups:
         parts = [sanitize_filename(k if pd.notna(k) else "空值", max_len=20) for k in key]
         sheet_title = sanitize_sheet_name("_".join(parts), used_sheet_names)
         export_df, kinds = prepare_dataframe_for_export(group_df, col_kinds)
         ws = wb.create_sheet(title=sheet_title)
         _populate_worksheet(ws, export_df, kinds, header_rows)
         count += 1
-
-    if count == 0:
-        raise ValueError("没有可写入的数据")
+        if on_progress:
+            on_progress(count, total)
 
     _save_workbook_safe(wb, output_file)
     return SplitExportResult(count=count, output_path=output_file, mode=OUTPUT_MODE_WORKBOOK)

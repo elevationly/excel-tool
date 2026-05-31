@@ -650,18 +650,24 @@ class ExcelSplitApp:
         self.out_entry.pack(side="left", fill="x", expand=True, padx=(4, 0))
 
         action = ctk.CTkFrame(bottom_card, fg_color="transparent")
-        action.pack(fill="x", padx=16, pady=(0, 14))
+        action.pack(fill="x", padx=16, pady=(0, 6))
+        action_row = ctk.CTkFrame(action, fg_color="transparent")
+        action_row.pack(fill="x")
         self.run_btn = primary_button(
-            action, text="开始拆分", command=self._run_split, width=120, height=38
+            action_row, text="开始拆分", command=self._run_split, width=120, height=38
         )
         self.run_btn.pack(side="left")
         self.status_label = ctk.CTkLabel(
-            action,
+            action_row,
             text="请选择 Excel 文件",
             font=FONT_SMALL,
             text_color=TEXT_SECONDARY,
         )
         self.status_label.pack(side="left", padx=20)
+        self.progress_bar = ctk.CTkProgressBar(action, height=8, progress_color=PRIMARY)
+        self.progress_bar.pack(fill="x", pady=(8, 0))
+        self.progress_bar.set(0)
+        self.progress_bar.pack_forget()
 
         # 文件 + 工作表（同一行）
         source_card = card(main)
@@ -927,6 +933,20 @@ class ExcelSplitApp:
 
     def _set_status(self, text: str) -> None:
         self.status_label.configure(text=text)
+
+    def _show_progress(self, visible: bool) -> None:
+        if visible:
+            self.progress_bar.pack(fill="x", pady=(8, 0))
+        else:
+            self.progress_bar.pack_forget()
+            self.progress_bar.set(0)
+
+    def _report_split_progress(self, current: int, total: int) -> None:
+        if total <= 0:
+            return
+        self.progress_bar.set(current / total)
+        self._set_status(f"正在处理… ({current}/{total})")
+        self.root.update_idletasks()
 
     def _set_path_display(self, path: str | None) -> None:
         self.path_entry.configure(state="normal")
@@ -1245,6 +1265,9 @@ class ExcelSplitApp:
                 filters.append(f)
 
         try:
+            self.run_btn.configure(state="disabled")
+            self._show_progress(True)
+            self.progress_bar.set(0)
             self._set_status("正在处理…")
             self.root.update_idletasks()
             data = self.df.copy()
@@ -1282,6 +1305,10 @@ class ExcelSplitApp:
             else:
                 out_path = make_timestamped_output_dir(self.file_path)
             col_kinds = self._get_col_kinds_dict()
+
+            def on_progress(current: int, total: int) -> None:
+                self._report_split_progress(current, total)
+
             result = split_and_export(
                 data,
                 split_cols,
@@ -1289,7 +1316,9 @@ class ExcelSplitApp:
                 header_rows=self.header_rows,
                 col_kinds=col_kinds,
                 mode=mode,
+                on_progress=on_progress,
             )
+            self.progress_bar.set(1)
             self._set_out_hint(str(result.output_path))
             if mode == OUTPUT_MODE_WORKBOOK:
                 unit = "个工作表"
@@ -1307,6 +1336,9 @@ class ExcelSplitApp:
         except Exception as e:
             _show_error(self.root, "错误", str(e))
             self._set_status("处理失败")
+        finally:
+            self.run_btn.configure(state="normal")
+            self._show_progress(False)
 
     def run(self):
         self.root.mainloop()
