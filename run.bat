@@ -1,4 +1,4 @@
-@echo off
+﻿@echo off
 chcp 65001 >nul
 cd /d "%~dp0"
 REM 固定 Python 3.8，目标运行环境：Windows 7

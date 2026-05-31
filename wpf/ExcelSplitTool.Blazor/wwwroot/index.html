@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Excel 表格拆分工具</title>
+    <base href="/" />
+    <link href="_content/AntDesign/css/ant-design-blazor.css" rel="stylesheet" />
+    <style>
+        html, body { margin: 0; padding: 0; height: 100%; background: #f0f2f5; }
+        #app { height: 100%; }
+        /* 主内容区居中，留白适中 */
+        .app-main {
+            max-width: 1280px;
+            margin: 0 auto;
+            width: 100%;
+            box-sizing: border-box;
+            padding: 0 8px;
+        }
+        /* 按列拆分 / 筛选条件：统一工具栏与列表行 */
+        .panel-card-hint {
+            font-size: 12px;
+            color: #8c8c8c;
+            margin-bottom: 12px;
+        }
+        .panel-toolbar { margin-bottom: 12px; }
+        .panel-toolbar .ant-space { display: flex; flex-wrap: wrap; align-items: center; }
+        .panel-item-list { min-height: 48px; }
+        .panel-item-row {
+            display: flex;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 8px;
+            padding: 8px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+        .panel-item-row:last-child { border-bottom: none; }
+        .panel-item-label {
+            min-width: 88px;
+            font-weight: 600;
+        }
+        .panel-item-meta {
+            color: #8c8c8c;
+            font-size: 12px;
+        }
+        .panel-item-row .ant-btn-dangerous { margin-left: auto; }
+        /* 列类型：说明与工具栏居中，表格铺满 */
+        .type-column-card > .ant-card-head { text-align: center; }
+        .type-column-card > .ant-card-head .ant-card-head-title { display: inline-block; }
+        .type-column-hint {
+            font-size: 12px;
+            color: #8c8c8c;
+            margin-bottom: 12px;
+            text-align: center;
+        }
+        .type-column-section {
+            display: flex;
+            flex-direction: column;
+            width: 100%;
+        }
+        .type-column-toolbar { display: block; width: 100%; margin-bottom: 12px; text-align: center; }
+        .type-column-toolbar .ant-space {
+            display: inline-flex;
+            flex-wrap: wrap;
+            align-items: center;
+            justify-content: center;
+        }
+        .type-column-table { display: block; width: 100%; }
+        .type-column-table .ant-table,
+        .type-column-table .ant-table-container { width: 100% !important; }
+        .type-column-table .ant-table-thead > tr > th,
+        .type-column-table .ant-table-tbody > tr > td {
+            text-align: center !important;
+        }
+        .type-column-table .ant-table-tbody td .ant-select {
+            margin: 0 auto;
+        }
+        /* 顶栏按钮：主操作为白底蓝字，其余为白字描边 */
+        .header-actions .ant-btn-primary {
+            background: #fff !important;
+            color: #1677ff !important;
+            border-color: #fff !important;
+            font-weight: 600;
+            box-shadow: 0 1px 4px rgba(0, 0, 0, 0.12);
+        }
+        .header-actions .ant-btn-primary:hover,
+        .header-actions .ant-btn-primary:focus {
+            background: #f0f7ff !important;
+            color: #0958d9 !important;
+            border-color: #f0f7ff !important;
+        }
+        .header-actions .ant-btn-default {
+            color: #fff !important;
+            border-color: rgba(255, 255, 255, 0.88) !important;
+            background: transparent !important;
+        }
+        .header-actions .ant-btn-default:hover:not(:disabled),
+        .header-actions .ant-btn-default:focus:not(:disabled) {
+            color: #fff !important;
+            border-color: #fff !important;
+            background: rgba(255, 255, 255, 0.12) !important;
+        }
+        .header-actions .ant-btn-default:disabled {
+            color: rgba(255, 255, 255, 0.45) !important;
+            border-color: rgba(255, 255, 255, 0.35) !important;
+            background: transparent !important;
+        }
+    </style>
+</head>
+<body>
+    <div id="app">加载中…</div>
+    <script src="_framework/blazor.webview.js"></script>
+    <script src="_content/AntDesign/js/ant-design-blazor.js"></script>
+</body>
+</html>

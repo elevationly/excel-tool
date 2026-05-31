@@ -555,8 +555,7 @@ def make_timestamped_output_dir(
 
 def _group_keys_and_frames(df: pd.DataFrame, split_columns: list[str]):
     if not split_columns:
-        yield ("全部数据",), df
-        return
+        raise ValueError("请至少添加一列用于拆分")
     missing = [c for c in split_columns if c not in df.columns]
     if missing:
         raise KeyError(f"列不存在: {', '.join(missing)}")

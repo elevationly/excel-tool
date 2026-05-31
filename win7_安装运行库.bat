@@ -1,4 +1,4 @@
-@echo off
+﻿@echo off
 setlocal EnableDelayedExpansion
 chcp 65001 >nul
 cd /d "%~dp0"
@@ -171,7 +171,7 @@ if exist "%NDP48%" (
 ) else (
     echo [提示] 未找到 .NET 4.8 离线包（WPF 版可能需要）：
     echo        %NDP48%
-    echo        说明见 redist\win7\ndp48\离线安装说明.txt
+    echo        说明见 redist/win7/ndp48/离线安装说明.txt
     echo.
 )
 

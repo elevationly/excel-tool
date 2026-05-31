@@ -1,0 +1,223 @@
+@page "/"
+@using System.IO
+@inject ExcelAppState App
+@implements IDisposable
+
+<Layout Style="min-height:100vh;background:#f0f2f5;">
+    <Header Style="background:#1677ff;padding:0 16px;height:56px;line-height:56px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;color:#fff;">
+            <div>
+                <span style="font-size:18px;font-weight:600;">Excel 表格拆分工具</span>
+                <span style="margin-left:16px;font-size:12px;opacity:.85;">按列拆分 · 筛选 · 导出</span>
+                <span style="margin-left:16px;font-size:12px;opacity:.65;">by 飞行的hips</span>
+            </div>
+            <Space Class="header-actions">
+                <Button Type="@ButtonType.Primary" OnClick="PickFileAsync">选择文件</Button>
+                <Button OnClick="ReloadSheetAsync" Disabled="@(App.Data == null)">重新加载</Button>
+                <Button OnClick="RunSplitAsync" Disabled="@App.IsRunning">开始拆分</Button>
+                <Button OnClick="App.OpenOutput" Disabled="@(!App.CanOpenOutput)">打开输出</Button>
+            </Space>
+        </div>
+    </Header>
+
+    <Content Style="padding:16px 12px 100px;">
+        <div class="app-main">
+        <Card Style="margin-bottom:12px;" BodyStyle="padding:16px 20px;">
+            <Space Size="@("middle")">
+                <Tag Color="@(App.Data != null ? "success" : "default")">@App.FileStatus</Tag>
+                <Tag Color="@(App.Data != null ? "success" : "default")">@App.SheetStatus</Tag>
+            </Space>
+        </Card>
+
+        <Card Title="Excel 文件" Style="margin-bottom:12px;">
+            <GridRow Gutter="16" Align="RowAlign.Middle">
+                <GridCol Span="2">文件</GridCol>
+                <GridCol Span="10">
+                    <Input Value="@(App.FilePath == null ? "" : Path.GetFileName(App.FilePath))" ReadOnly />
+                    <div style="margin-top:4px;font-size:12px;color:#8c8c8c;">@(App.FilePath ?? "")</div>
+                </GridCol>
+                <GridCol Span="2">工作表</GridCol>
+                <GridCol Span="6">
+                    <Select TItemValue="string" TItem="string"
+                            DataSource="@App.SheetNames"
+                            @bind-Value="@App.SelectedSheet"
+                            @bind-Value:after="OnSheetChangedAsync"
+                            Placeholder="选择工作表"
+                            Style="width:100%;"
+                            Disabled="@(App.SheetNames.Count == 0)" />
+                </GridCol>
+            </GridRow>
+        </Card>
+
+        <GridRow Gutter="12" Style="margin-bottom:12px;">
+            <GridCol Span="12">
+                <Card Title="按列拆分" Class="panel-card" Style="height:100%;">
+                    <div class="panel-card-hint">可多列组合；文件夹→多文件，工作簿→多工作表</div>
+                    <Space Class="panel-toolbar">
+                        <Select TItemValue="string" TItem="string"
+                                DataSource="@App.ColumnNames"
+                                @bind-Value="@App.SelectedSplitColumn"
+                                Placeholder="拆分列"
+                                Style="width:160px;"
+                                Disabled="@(App.Data == null)" />
+                        <Button OnClick="AddSplitColumnAsync">添加</Button>
+                        <Button OnClick="App.RemoveLastSplitColumn">移除</Button>
+                    </Space>
+                    <div class="panel-item-list">
+                        @foreach (var col in App.SplitColumns)
+                        {
+                            <div class="panel-item-row">
+                                <strong class="panel-item-label">@col</strong>
+                                <span class="panel-item-meta">拆分依据</span>
+                                <Button Size="@ButtonSize.Small" Danger OnClick="() => App.RemoveSplitColumn(col)">移除</Button>
+                            </div>
+                        }
+                    </div>
+                </Card>
+            </GridCol>
+            <GridCol Span="12">
+                <Card Title="筛选条件" Class="panel-card" Style="height:100%;">
+                    <div class="panel-card-hint">添加后设置条件（依列类型显示）</div>
+                    <Space Class="panel-toolbar">
+                        <Select TItemValue="string" TItem="string"
+                                DataSource="@App.ColumnNames"
+                                @bind-Value="@App.SelectedFilterColumn"
+                                Placeholder="筛选列"
+                                Style="width:160px;"
+                                Disabled="@(App.Data == null)" />
+                        <Button OnClick="App.AddFilter">添加</Button>
+                        <Button OnClick="App.RemoveLastFilter">移除</Button>
+                    </Space>
+                    <div class="panel-item-list">
+                        @foreach (var f in App.Filters)
+                        {
+                            <div class="panel-item-row">
+                                <strong class="panel-item-label">@f.Column</strong>
+                                @if (f.Kind == ColumnKind.Date)
+                                {
+                                    <DatePicker @bind-Value="f.Start" Placeholder="@("起")" Style="width:130px;" />
+                                    <span>—</span>
+                                    <DatePicker @bind-Value="f.End" Placeholder="@("止")" Style="width:130px;" />
+                                }
+                                else if (f.Kind == ColumnKind.Number)
+                                {
+                                    <span>≥</span>
+                                    <AntDesign.InputNumber @bind-Value="f.Min" Style="width:100px;" />
+                                    <span>≤</span>
+                                    <AntDesign.InputNumber @bind-Value="f.Max" Style="width:100px;" />
+                                }
+                                else
+                                {
+                                    <span>包含</span>
+                                    <Input @bind-Value="f.Text" Style="width:180px;" />
+                                }
+                                <Button Size="@ButtonSize.Small" Danger OnClick="() => App.RemoveFilter(f)">移除</Button>
+                            </div>
+                        }
+                    </div>
+                </Card>
+            </GridCol>
+        </GridRow>
+
+        <Card Title="列类型" Style="margin-bottom:12px;" Class="type-column-card">
+            <div class="type-column-hint">自动判断，可修正；影响筛选与导出格式</div>
+            <div class="type-column-section">
+            <div class="type-column-toolbar">
+                <Space>
+                    <Button OnClick="App.ResetKinds">全部恢复自动判断</Button>
+                    <RadioGroup TValue="string" @bind-Value="@TypeTabBind" ButtonStyle="RadioButtonStyle.Solid">
+                        <Radio RadioButton Value="@("all")">全部</Radio>
+                        <Radio RadioButton Value="@("text")">文本</Radio>
+                        <Radio RadioButton Value="@("date")">日期</Radio>
+                        <Radio RadioButton Value="@("number")">数字</Radio>
+                    </RadioGroup>
+                </Space>
+            </div>
+            <div class="type-column-table">
+                <Table TItem="ColumnTypeRow"
+                       DataSource="@App.FilteredTypeRows.ToList()"
+                       Size="@TableSize.Small"
+                       Bordered
+                       HidePagination
+                       TableLayout="fixed">
+                    <PropertyColumn Property="c => c.ColumnName" Title="列名" Width="55%" Align="ColumnAlign.Center" Ellipsis />
+                    <PropertyColumn Property="c => c.AutoLabel" Title="自动判断" Width="22%" Align="ColumnAlign.Center" />
+                    <ActionColumn Title="修正为" Width="23%" Align="ColumnAlign.Center">
+                        <Select TItemValue="string" TItem="string"
+                                DataSource="@ColumnKindLabels.All"
+                                Value="@context.CorrectedLabel"
+                                OnSelectedItemChanged="item => OnKindSelect(context, item)"
+                                Style="width:112px;" />
+                    </ActionColumn>
+                </Table>
+            </div>
+            </div>
+        </Card>
+        </div>
+    </Content>
+
+    <Footer Style="position:fixed;bottom:0;left:0;right:0;background:#fff;border-top:1px solid #f0f0f0;padding:12px 12px;z-index:10;">
+        <div class="app-main">
+        <div style="margin-bottom:8px;">
+            <span style="margin-right:12px;color:#8c8c8c;">输出方式</span>
+            <RadioGroup TValue="string" @bind-Value="@OutputModeBind">
+                <Radio Value="@ExcelProcessor.OutputModeFiles">多个文件（文件夹）</Radio>
+                <Radio Value="@ExcelProcessor.OutputModeWorkbook">单个工作簿（多工作表）</Radio>
+            </RadioGroup>
+        </div>
+        <div style="margin-bottom:8px;">
+            <span style="color:#8c8c8c;margin-right:8px;">输出位置</span>
+            <Text Type="@TextElementType.Secondary">@App.OutputHint</Text>
+        </div>
+        @if (!string.IsNullOrEmpty(App.AlertMessage))
+        {
+            <Alert Type="@App.AlertType" Message="@App.AlertMessage" ShowIcon="true" Closable OnClose="@ClearAlert" Style="margin-bottom:8px;" />
+        }
+        <div style="display:flex;align-items:center;gap:16px;">
+            <Button Type="@ButtonType.Primary" Size="@ButtonSize.Large" Loading="@App.IsRunning" OnClick="RunSplitAsync">开始拆分</Button>
+            <Text Type="@(string.IsNullOrEmpty(App.AlertMessage) ? TextElementType.Secondary : TextElementType.Danger)">@App.StatusText</Text>
+        </div>
+        @if (App.ShowProgress)
+        {
+            <Progress Percent="@App.ProgressPercent" Status="@(App.IsRunning ? ProgressStatus.Active : ProgressStatus.Success)" Style="margin-top:8px;" />
+        }
+        </div>
+    </Footer>
+</Layout>
+
+@code {
+    protected override void OnInitialized() => App.Changed += StateHasChanged;
+
+    public void Dispose() => App.Changed -= StateHasChanged;
+
+    private string TypeTabBind
+    {
+        get => App.TypeTab;
+        set => App.SetTypeTab(value);
+    }
+
+    private string OutputModeBind
+    {
+        get => App.OutputMode;
+        set
+        {
+            App.OutputMode = value;
+            App.RefreshOutputHint();
+            App.Notify();
+        }
+    }
+
+    private async Task OnSheetChangedAsync() => await App.ReloadSheetAsync();
+
+    private async Task PickFileAsync() => await App.PickFileAsync();
+
+    private async Task ReloadSheetAsync() => await App.ReloadSheetAsync();
+
+    private async Task RunSplitAsync() => await App.RunSplitAsync();
+
+    private async Task AddSplitColumnAsync() => await App.AddSplitColumnAsync();
+
+    private void ClearAlert() => App.ClearAlert();
+
+    private void OnKindSelect(ColumnTypeRow row, string label) => App.OnKindChanged(row, label);
+}

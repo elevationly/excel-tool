@@ -8,9 +8,9 @@ using System.Text;
 using System.Text.RegularExpressions;
 using ClosedXML.Excel;
 using ExcelDataReader;
-using ExcelSplitTool.Models;
+using ExcelSplitTool.Core.Models;
 
-namespace ExcelSplitTool.Services;
+namespace ExcelSplitTool.Core.Services;
 
 public static class ExcelProcessor
 {

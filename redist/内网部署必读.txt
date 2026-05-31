@@ -1,0 +1,16 @@
+Excel 表格拆分工具 — Win7 内网部署
+
+【拷贝】将本文件夹整包拷入内网 Win7 电脑，保持目录结构不变。
+
+【安装运行库】右键 win7_安装运行库.bat，以管理员身份运行，输入 Y
+  - 仅需运行一次；不访问互联网
+  - 需 Windows 7 SP1
+
+【WPF 版】若使用 wpf 打包的 exe，还需 .NET Framework 4.8：
+  - 将 ndp48-x86-x64-allos-enu.exe 放入 redist/win7/ndp48/ 后重新打离线包
+  - 或内网已统一安装过 .NET 4.8 则可直接运行 exe
+
+【运行】双击 Excel表格拆分工具.exe
+  WPF 版：勿单独拷 exe，须保留同目录全部 dll 与 .config
+
+详细说明见 redist/win7/离线安装包说明.txt

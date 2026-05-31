@@ -21,6 +21,8 @@ release/
 # WPF / .NET 构建产物
 [Bb]in/
 [Oo]bj/
+wpf/dist/
+wpf/dist-test/
 wpf/publish/
 
 # 拆分输出与示例数据（勿提交大文件）
